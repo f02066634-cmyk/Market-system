@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-st.set_page_config(page_title="نظام إدارة عقارات المحلات المطور", layout="wide")
+st.set_page_config(page_title="نظام إدارة وتحصيل أسواق الشبرمي", layout="wide")
 
 # ==================== دالة معالجة الإكسل لفتحها بأعمدة منفصلة ====================
 def convert_df_to_excel_csv(df):
@@ -76,7 +76,7 @@ def convert_receipt_to_pdf_html(receipt_data):
     </head>
     <body>
         <div class="receipt-card">
-            <h2>🧾 سند قبض مالي رسمي</h2>
+            <h2>🧾 سند قبض مالي رسمي - أسواق الشبرمي</h2>
             <h4>رقم السند الموحد: {receipt_data['رقم السند']}</h4>
             <hr>
             <p><strong>التاريخ م:</strong> {receipt_data['التاريخ']} م</p>
@@ -112,11 +112,11 @@ if 'historical_debts_db' not in st.session_state:
 if 'expenses_db' not in st.session_state:
     st.session_state.expenses_db = pd.DataFrame(columns=["التاريخ", "بند الصرف", "المبلغ", "ملاحظات"])
 
-# تهيئة ذاكرة السندات النشطة لمنع الاختفاء عند الطباعة
 if 'latest_receipt' not in st.session_state:
     st.session_state.latest_receipt = None
 
-st.title("🏢 نظام إدارة وتحصيل عقارات المحلات التجارية")
+# تحديث اسم النظام الرئيسي بناءً على طلبك
+st.title("🏢 نظام إدارة وتحصيل أسواق الشبرمي")
 st.markdown("---")
 
 # ==================== القائمة الرئيسية ====================
@@ -128,9 +128,11 @@ if menu == "عمليات التحصيل وإدخال البيانات":
     # 1. إدارة العقود والمحلات
     with tab1:
         st.subheader("إدارة بيانات عقود الـ 166 محل")
-        action_type = st.radio("اختر الإجراء المطلوب المُراد تنفيذه:", ["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث)"], horizontal=True)
         
-        if action_type == "✍️ تسجيل عقد لمحل جديد (إدخال جديد)":
+        # استبدال زر الراديو التقليدي بأيقونة تفاعلية على الكلمة نفسها باستخدام الألسنة (Tabs الفرعية)
+        sub_tab1, sub_tab2 = st.tabs(["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث)"])
+        
+        with sub_tab1:
             available_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] != "مؤجر"]["رقم المحل"].tolist()
             if available_shops:
                 with st.form("new_contract_form"):
@@ -159,7 +161,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
             else:
                 st.success("🎉 جميع الـ 166 محل مؤجرة بالكامل حالياً!")
                 
-        else:
+        with sub_tab2:
             rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
             if rented_shops:
                 selected_shop = st.selectbox("اختر رقم المحل المؤجر المُراد تعديل بياناته:", rented_shops)
@@ -204,12 +206,12 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 excel_data = convert_df_to_excel_csv(rented_display_df)
                 st.download_button(label="📥 تحميل النظرة العامة (ملف Excel بأعمدة منفصلة)", data=excel_data, file_name='📊_المحلات_المؤجرة.csv', mime='text/csv')
             with ec2:
-                pdf_html_data = convert_df_to_pdf_html(rented_display_df, "تقرير النظرة العامة للمحلات المؤجرة")
+                pdf_html_data = convert_df_to_pdf_html(rented_display_df, "تقرير النظرة العامة للمحلات المؤجرة - أسواق الشبرمي")
                 st.download_button(label="📄 تصدير النظرة العامة كتقرير (PDF)", data=pdf_html_data, file_name='📑_تقرير_المحلات_المؤجرة.html', mime='text/html')
         else:
             st.info("لا توجد محلات مؤجرة لعرضها في النظرة العامة حالياً.")
 
-    # 2. التحصيل وسندات القبض (محدث بإضافة ميزة الطباعة المستقرة)
+    # 2. التحصيل وسندات القبض
     with tab2:
         st.subheader("تسجيل الدفعات وإصدار السندات")
         rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
@@ -222,7 +224,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 
                 if st.form_submit_button("اعتماد وإصدار سند قبض"):
                     current_year = datetime.now().year
-                    receipt_number = f"{current_year}-{len(st.session_state.transactions_db) + 1:04d}"
+                    receipt_number = f"SH-{current_year}-{len(st.session_state.transactions_db) + 1:04d}"
                     
                     idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == r_shop].index[0]
                     st.session_state.shops_db.at[idx, "المحصل"] += amount
@@ -237,7 +239,6 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                     }])
                     st.session_state.transactions_db = pd.concat([st.session_state.transactions_db, new_tx], ignore_index=True)
                     
-                    # حفظ السند الجديد في الذاكرة لتفعيل الطباعة
                     st.session_state.latest_receipt = {
                         "التاريخ": datetime.now().strftime("%Y-%m-%d"),
                         "رقم السند": receipt_number,
@@ -248,14 +249,13 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                     }
                     st.rerun()
 
-            # عرض السند الحالي الجاهز مع ميزة زر الطباعة
             if st.session_state.latest_receipt is not None:
                 lr = st.session_state.latest_receipt
-                st.success("تم تسجيل الدفعة بنجاح بنظام السندات المتسلسلة!")
+                st.success("تم تسجيل الدفعة بنجاح بنظام السندات المتسلسلة لأسواق الشبرمي!")
                 st.markdown(f"""
                 <div style='border: 2px dashed #4CAF50; padding: 20px; border-radius: 10px; margin-top: 10px; background-color: #f9f9f9; color: #333;'>
-                    <h2 style='text-align: center; color: #2E86C1; margin-bottom: 0;'>🧾 سند قبض مالي</h2>
-                    <h4 style='text-align: center; color: #555; margin-top: 5px;'>رقم السند الموحد: {lr['رقم السند']}</h4>
+                    <h2 style='text-align: center; color: #2E86C1; margin-bottom: 0;'>🧾 سند قبض مالي رسمي</h2>
+                    <h4 style='text-align: center; color: #555; margin-top: 5px;'>أسواق الشبرمي - رقم السند: {lr['رقم السند']}</h4>
                     <hr style='border: 1px solid #ddd;'>
                     <p><strong>التاريخ م:</strong> {lr['التاريخ']} م</p>
                     <p><strong>وصلنا من السيد/ة:</strong> {lr['المستأجر']} ( المستأجر لـ {lr['رقم المحل']} )</p>
@@ -266,12 +266,11 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # توليد ملف الطباعة وإظهار الزر
                 receipt_html_bytes = convert_receipt_to_pdf_html(lr)
                 st.download_button(
                     label="🖨️ اضغط هنا لفتح السند والطباعة الفورية / الحفظ كـ PDF",
                     data=receipt_html_bytes,
-                    file_name=f"سند_قبض_{lr['رقم السند']}.html",
+                    file_name=f"سند_قبض_الشبرمي_{lr['رقم السند']}.html",
                     mime="text/html"
                 )
         else:
@@ -283,7 +282,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
         with st.form("historical_debt"):
             col1, col2 = st.columns(2)
             with col1:
-                hist_year = st.text_input("السنة المالية (مثال: 2023):")
+                hist_year = st.text_input("السنة المالية (مثال: 2024):")
                 hist_tenant = st.text_input("اسم المستأجر السابق المغادر:")
             with col2:
                 hist_details = st.text_area("تفاصيل العقد والمديونية المتبقية:")
@@ -309,17 +308,17 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 debt_excel = convert_df_to_excel_csv(st.session_state.historical_debts_db)
                 st.download_button(label="📥 تحميل أرشيف الديون (ملف Excel بأعمدة منفصلة)", data=debt_excel, file_name='📊_أرشيف_الديون.csv', mime='text/csv')
             with dc2:
-                debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة للمستأجرين المغادرين")
+                debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة - أسواق الشبرمي")
                 st.download_button(label="📄 تصدير أرشيف الديون كتقرير (PDF)", data=debt_pdf, file_name='📑_تقرير_أرشيف_الديون.html', mime='text/html')
 
     # 4. إدارة المصروفات
     with tab4:
-        st.subheader("إدارة وتسجيل المصروفات التشغيلية")
+        st.subheader("إدارة وتسجيل المصروفات التشغيلية لأسواق الشبرمي")
         with st.form("expenses_form"):
             col1, col2 = st.columns(2)
             with col1:
                 exp_date = st.date_input("تاريخ الصرف:")
-                exp_cat = st.text_input("بند ومجال الصرف (مثل: صيانة شبكة المياه، فواتير الكهرباء):")
+                exp_cat = st.text_input("بند ومجال الصرف (مثل: صيانة، فواتير كهرباء الأسواق):")
             with col2:
                 exp_amount = st.number_input("المبلغ المالي المصروف:", min_value=1)
                 exp_notes = st.text_input("أي ملاحظات تود تدوينها:")
@@ -340,7 +339,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
 
 # ==================== لوحة المؤشرات الإحصائية ====================
 elif menu == "لوحة المؤشرات والتحليلات":
-    st.header("📊 لوحة المؤشرات والتحليلات الإستراتيجية للمجمع")
+    st.header("📊 لوحة المؤشرات والتحليلات الإستراتيجية لأسواق الشبرمي")
     df_shops = st.session_state.shops_db
     total_collected = df_shops["المحصل"].sum()
     total_historical_debt = st.session_state.historical_debts_db["المبلغ المتبقي"].sum() if not st.session_state.historical_debts_db.empty else 0
@@ -350,9 +349,9 @@ elif menu == "لوحة المؤشرات والتحليلات":
     with col1:
         st.metric("إجمالي التحصيلات (العقود الحالية)", f"{total_collected:,} ريال")
     with col2:
-        st.metric("إجمالي المصروفات التشغيلية", f"{total_expenses:,} ريال")
+        st.metric("إجمالي المصروفات التشغيلية", f"{total_expenses:,} - ريال")
     with col3:
-        st.metric("صافي الدخل الحالي للمشروع", f"{(total_collected - total_expenses):,} ريال")
+        st.metric("صافي دخل أسواق الشبرمي", f"{(total_collected - total_expenses):,} ريال")
     with col4:
         st.metric("إجمالي المديونيات المعلقة", f"{total_historical_debt:,} ريال")
         
