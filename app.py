@@ -3,7 +3,97 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+# إعداد الصفحة وتفعيل التصميم الأساسي
 st.set_page_config(page_title="نظام إدارة وتحصيل أسواق الشبرمي", layout="wide")
+
+# ==================== حقن ثيم التصميم الجذاب والمودرن (CSS) ====================
+st.markdown("""
+    <style>
+        /* تغيير الخلفية العامة للنظام وتنسيق الخطوط */
+        .stApp {
+            background: linear-gradient(135deg, #e0f2fe 0%, #f8fafc 100%) !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+        
+        /* تحسين شكل القائمة الجانبية */
+        [data-testid="stSidebar"] {
+            background-color: rgba(255, 255, 255, 0.6) !important;
+            backdrop-filter: blur(10px) !important;
+            border-left: 1px solid rgba(255, 255, 255, 0.4) !important;
+        }
+        
+        /* تصميم البطاقات والحاويات بشكل ناعم ومستدير (نفس الصور المرفقة) */
+        div[data-testid="stForm"], .stTabs, [data-testid="stMetricValue"] {
+            background: rgba(255, 255, 255, 0.7) !important;
+            backdrop-filter: blur(12px) !important;
+            border-radius: 24px !important;
+            padding: 25px !important;
+            box-shadow: 0 8px 32px 0 rgba(31, 135, 211, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.6) !important;
+            margin-bottom: 20px !important;
+        }
+        
+        /* تحسين شكل الألسنة والتنقل (Tabs) لتصبح ناعمة وبدون حواف حادة */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 10px !important;
+            background-color: rgba(241, 245, 249, 0.8) !important;
+            padding: 8px !important;
+            border-radius: 16px !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 12px !important;
+            padding: 10px 20px !important;
+            background-color: transparent !important;
+            transition: all 0.3s ease !important;
+            font-weight: 600 !important;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #2E86C1 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(46, 134, 193, 0.2) !important;
+        }
+        
+        /* تحسين المدخلات والقوائم المنسدلة */
+        .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
+            border-radius: 14px !important;
+            border: 1px solid rgba(203, 213, 225, 0.8) !important;
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            padding: 10px !important;
+            color: #334155 !important;
+        }
+        
+        /* تصميم الأزرار لتكون حيوية وعصرية */
+        .stButton button {
+            border-radius: 14px !important;
+            background: linear-gradient(90deg, #2E86C1 0%, #2471A3 100%) !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 24px !important;
+            font-weight: bold !important;
+            box-shadow: 0 4px 15px rgba(46, 134, 193, 0.3) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+        }
+        .stButton button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(46, 134, 193, 0.4) !important;
+        }
+        
+        /* تجميل العناوين الرئيسية */
+        h1, h2, h3 {
+            color: #1e3a8a !important;
+            font-weight: 700 !important;
+            text-align: right !important;
+        }
+        
+        /* تجميل شكل جداول البيانات */
+        .stDataFrame {
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # ==================== دالة معالجة الإكسل لفتحها بأعمدة منفصلة ====================
 def convert_df_to_excel_csv(df):
@@ -115,7 +205,7 @@ if 'expenses_db' not in st.session_state:
 if 'latest_receipt' not in st.session_state:
     st.session_state.latest_receipt = None
 
-# تحديث اسم النظام الرئيسي بناءً على طلبك
+# عنوان النظام المحدث
 st.title("🏢 نظام إدارة وتحصيل أسواق الشبرمي")
 st.markdown("---")
 
@@ -129,7 +219,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
     with tab1:
         st.subheader("إدارة بيانات عقود الـ 166 محل")
         
-        # استبدال زر الراديو التقليدي بأيقونة تفاعلية على الكلمة نفسها باستخدام الألسنة (Tabs الفرعية)
+        # التنقل بالأيقونات والكلمة نفسها بشكل تفاعلي عصري
         sub_tab1, sub_tab2 = st.tabs(["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث)"])
         
         with sub_tab1:
@@ -204,14 +294,14 @@ if menu == "عمليات التحصيل وإدخال البيانات":
             ec1, ec2 = st.columns(2)
             with ec1:
                 excel_data = convert_df_to_excel_csv(rented_display_df)
-                st.download_button(label="📥 تحميل النظرة العامة (ملف Excel بأعمدة منفصلة)", data=excel_data, file_name='📊_المحلات_المؤجرة.csv', mime='text/csv')
+                st.download_button(label="📥 تحميل النظرة العامة (ملف Excel)", data=excel_data, file_name='📊_المحلات_المؤجرة.csv', mime='text/csv')
             with ec2:
                 pdf_html_data = convert_df_to_pdf_html(rented_display_df, "تقرير النظرة العامة للمحلات المؤجرة - أسواق الشبرمي")
                 st.download_button(label="📄 تصدير النظرة العامة كتقرير (PDF)", data=pdf_html_data, file_name='📑_تقرير_المحلات_المؤجرة.html', mime='text/html')
         else:
             st.info("لا توجد محلات مؤجرة لعرضها في النظرة العامة حالياً.")
 
-    # 2. التحصيل وسندات القبض
+# ==================== التحصيل وسندات القبض ====================
     with tab2:
         st.subheader("تسجيل الدفعات وإصدار السندات")
         rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
@@ -268,7 +358,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 
                 receipt_html_bytes = convert_receipt_to_pdf_html(lr)
                 st.download_button(
-                    label="🖨️ اضغط هنا لفتح السند والطباعة الفورية / الحفظ كـ PDF",
+                    label="🖨️ اضغط هنا لطباعة السند فورا أو الحفظ كـ PDF",
                     data=receipt_html_bytes,
                     file_name=f"سند_قبض_الشبرمي_{lr['رقم السند']}.html",
                     mime="text/html"
@@ -276,7 +366,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
         else:
             st.warning("لا توجد محلات مؤجرة لإصدار سندات حالياً.")
 
-    # 3. ديون المغادرين
+# ==================== ديون المغادرين ====================
     with tab3:
         st.subheader("جدولة وأرشيف ديون المستأجرين المغادرين")
         with st.form("historical_debt"):
@@ -306,12 +396,12 @@ if menu == "عمليات التحصيل وإدخال البيانات":
             dc1, dc2 = st.columns(2)
             with dc1:
                 debt_excel = convert_df_to_excel_csv(st.session_state.historical_debts_db)
-                st.download_button(label="📥 تحميل أرشيف الديون (ملف Excel بأعمدة منفصلة)", data=debt_excel, file_name='📊_أرشيف_الديون.csv', mime='text/csv')
+                st.download_button(label="📥 تحميل أرشيف الديون (ملف Excel)", data=debt_excel, file_name='📊_أرشيف_الديون.csv', mime='text/csv')
             with dc2:
                 debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة - أسواق الشبرمي")
                 st.download_button(label="📄 تصدير أرشيف الديون كتقرير (PDF)", data=debt_pdf, file_name='📑_تقرير_أرشيف_الديون.html', mime='text/html')
 
-    # 4. إدارة المصروفات
+# ==================== إدارة المصروفات ====================
     with tab4:
         st.subheader("إدارة وتسجيل المصروفات التشغيلية لأسواق الشبرمي")
         with st.form("expenses_form"):
