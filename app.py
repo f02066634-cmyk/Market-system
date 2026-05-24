@@ -2,20 +2,154 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import io # مكتبة إضافية للتعامل مع ملفات الإكسل
+import io
 
-# ضبط إعدادات الصفحة الأصلية
-st.set_page_config(page_title="نظام الإدارة العقارية المعتمد", layout="wide")
+# ضبط إعدادات الصفحة وجعلها متوافقة مع التصميم الاحترافي
+st.set_page_config(page_title="نظام الإدارة العقارية المطور", layout="wide", initial_sidebar_state="expanded")
 
-# ==================== دالة تصحيح ترميز الإكسل (XLSX) الحقيقي بنسبة 100% ====================
+# ==================== نظام التنسيق والحقن الجمالي (Custom CSS) ====================
+st.markdown("""
+<style>
+    /* استيراد خطوط احترافية وتطبيقها على كامل النظام */
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+    
+    html, body, [data-testid="stSidebar"], .stApp {
+        font-family: 'Tajawal', sans-serif !important;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    /* تحسين شكل البطاقات المالية الإحصائية */
+    .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-right: 5px solid #2E86C1;
+        margin-bottom: 15px;
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+    }
+    .metric-title { font-size: 14px; color: #7F8C8D; margin-bottom: 5px; font-weight: 500; }
+    .metric-value { font-size: 22px; color: #2C3E50; font-weight: 700; }
+    
+    /* تصميم الأزرار الاحترافية */
+    div.stButton > button {
+        width: 100% !important;
+        background-color: #2E86C1 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 20px !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+        box-shadow: 0 3px 6px rgba(46, 134, 193, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+    div.stButton > button:hover {
+        background-color: #1B4F72 !important;
+        box-shadow: 0 5px 12px rgba(46, 134, 193, 0.4) !important;
+    }
+    
+    /* زر التنزيل المخصص */
+    div.stDownloadButton > button {
+        background-color: #27AE60 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        box-shadow: 0 3px 6px rgba(39, 174, 96, 0.2) !important;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: #1E8449 !important;
+    }
+    
+    /* تحسين شكل النماذج والقوائم */
+    .stForm {
+        background-color: #FAFAFA !important;
+        border-radius: 12px !important;
+        border: 1px solid #E0E0E0 !important;
+        padding: 25px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+    }
+    
+    /* تصميم فخم للسند المالي قابل للطباعة */
+    .premium-receipt {
+        background: #ffffff;
+        border: 1px solid #dcdde1;
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    .premium-receipt::before {
+        content: "";
+        position: absolute;
+        top: 0; right: 0; left: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #2E86C1, #27AE60);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ==================== دالة التصدير إلى إكسل حقيقي XLSX بنسبة 100% ====================
 def convert_to_real_excel(df):
     output = io.BytesIO()
-    # استخدام محرك openpyxl لإنشاء ملف إكسل رسمي
+    # استخدام محرك openpyxl لإنشاء ملف إكسل رسمي معتمد تفهمه كل الحواسب والأجهزة
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='تقرير النظام')
     return output.getvalue()
 
-# ==================== تهيئة قواعد البيانات الأصلية ====================
+# ==================== دالة توليد تقرير ذكي للطباعة كـ PDF متناسق ====================
+def convert_df_to_pdf_html(df, title="تقرير النظام"):
+    html = f"""
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; padding: 20px; background-color: #f5f5f5; }}
+            .report-card {{ background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 950px; margin: auto; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }}
+            th, td {{ border: 1px solid #e0e0e0; padding: 12px; text-align: center; }}
+            th {{ background-color: #2E86C1; color: white; font-size: 14px; font-weight: bold; }}
+            td {{ font-size: 13px; color: #2C3E50; }}
+            tr:nth-child(even) {{ background-color: #f8f9fa; }}
+            h2 {{ color: #2E86C1; text-align: center; margin-bottom: 5px; }}
+            .date {{ text-align: left; font-size: 12px; color: #7F8C8D; }}
+            @media print {{
+                .no-print {{ display: none !important; }}
+                body {{ background-color: white; padding: 0; }}
+                .report-card {{ box-shadow: none; padding: 0; max-width: 100%; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="report-card">
+            <h2>🏢 {title}</h2>
+            <p class="date">تاريخ إصدار التقرير: {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}</p>
+            <hr style='border: 1px solid #f1f2f6;'>
+            <table>
+                <thead>
+                    <tr>{"".join(f"<th>{col}</th>" for col in df.columns)}</tr>
+                </thead>
+                <tbody>
+                    {"".join(f"<tr>{''.join(f'<td>{str(val)}</td>' for val in row)}</tr>" for row in df.values)}
+                </tbody>
+            </table>
+            <br><br>
+            <button class="no-print" onclick="window.print()" style="padding: 14px; background-color: #2E86C1; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📸 اضغط هنا لحفظ التقرير كـ PDF أو طباعته فوراً</button>
+        </div>
+    </body>
+    </html>
+    """
+    return html.encode('utf-8')
+
+# ==================== تهيئة قواعد البيانات المؤقتة ====================
 if 'shops_db' not in st.session_state:
     data = []
     for i in range(1, 167):
@@ -34,30 +168,32 @@ if 'historical_debts_db' not in st.session_state:
 if 'expenses_db' not in st.session_state:
     st.session_state.expenses_db = pd.DataFrame(columns=["التاريخ", "بند الصرف", "المبلغ", "ملاحظات"])
 
-# عنوان النظام البدائي المعتمد
-st.title("🏢 نظام إدارة وتحصيل عقارات المحلات التجارية")
-st.markdown("---")
+# عنوان النظام الرئيسي بتصميم عصري
+st.markdown("<h1 style='text-align: center; color: #2C3E50; margin-bottom:10px;'>🏢 نظام إدارة وعقارات الـ 166 محل التجاري</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #7F8C8D; font-size:16px;'>منصة الإدارة الذكية والتحصيل وإصدار السندات والأرشفة</p>", unsafe_allow_html=True)
+st.markdown("<hr style='margin-top:5px; margin-bottom:25px;'>", unsafe_allow_html=True)
 
-# ==================== القائمة الجانبية الأصلية ====================
-menu = st.sidebar.radio("قائمة النظام الأساسية", ["عمليات التحصيل وإدخال البيانات", "لوحة المؤشرات والتحليلات"])
+# ==================== القائمة الجانبية المحدثة ====================
+st.sidebar.markdown("<h3 style='text-align:center; color:#2E86C1;'>🧭 لوحة التحكم</h3>", unsafe_allow_html=True)
+menu = st.sidebar.radio("انتقل بين الأقسام بحرية:", ["عمليات التحصيل وإدخل البيانات", "لوحة المؤشرات والتحليلات"])
+st.sidebar.markdown("---")
+st.sidebar.caption("💡 هذا النظام مصمم ليعمل بكفاءة عالية على شاشات الجوال والحواسب الشخصية.")
 
-if menu == "عمليات التحصيل وإدخال البيانات":
+if menu == "عمليات التحصيل وإدخل البيانات":
     tab1, tab2, tab3, tab4 = st.tabs(["📝 إدارة العقود والمحلات", "💰 التحصيل وسندات القبض", "📂 أرشيف ديون المغادرين", "🛠️ إدارة المصروفات"])
     
-    # 1. إدارة العقود والمحلات (إدخال وتعديل منفصلين تماماً - طلب المراجعة)
+    # 1. إدارة العقود والمحلات (إدخال وتعديل منفصلين تماماً)
     with tab1:
-        st.subheader("إدارة بيانات عقود المحلات (تسجيل وتحديث منفصلين)")
+        st.markdown("<h3 style='color:#2C3E50;'>📝 إدارة عقود المحلات وتحديثها</h3>", unsafe_allow_html=True)
+        action_type = st.radio("اختر الإجراء الإداري المطلوب تفعيله الآن:", ["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث بيانات)"], horizontal=True)
         
-        # اختيار نوع الإجراء المطلوب لفصل الأزرار
-        action_type = st.radio("اختر الإجراء المُراد تنفيذه الآن:", ["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث بيانات)"], horizontal=True)
-        
-        # --- الحالة الأولى: تسجيل عقد جديد (عرض المحلات الشاغرة فقط - طلب المراجعة) ---
+        # --- الحالة الأولى: تسجيل عقد جديد ---
         if action_type == "✍️ تسجيل عقد لمحل جديد (إدخال جديد)":
-            # جلب المحلات غير المؤجرة فقط (شاغر أو تحت الصيانة) ليتم إزالتها تلقائياً
             available_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] != "مؤجر"]["رقم المحل"].tolist()
             
             if available_shops:
                 with st.form("new_contract_form"):
+                    st.markdown("<p style='color:#3498db; font-weight:bold;'>💡 تظهر هنا المحلات الشاغرة فقط (تختفي تلقائياً فور حفظها كمؤجرة):</p>", unsafe_allow_html=True)
                     selected_shop = st.selectbox("اختر رقم المحل الشاغر لربطه بعقد جديد:", available_shops)
                     
                     col1, col2 = st.columns(2)
@@ -65,13 +201,12 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                         tenant = st.text_input("اسم المستأجر الجديد بالكامل:")
                         rent = st.number_input("قيمة الإيجار السنوي (ريال):", min_value=0, value=15000)
                     with col2:
-                        start_date = st.date_input("تاريخ سريان بداية العقد جديد:")
+                        start_date = st.date_input("تاريخ سريان بداية العقد:")
                         end_date = st.date_input("تاريخ نهاية العقد المحدد:")
                     
-                    # طلب المراجعة: زر حفظ منفصل
                     if st.form_submit_button("💾 حفظ وإدراج العقد الجديد في النظام"):
                         if tenant.strip() == "" or tenant == "-":
-                            st.error("خطأ: يرجى كتابة اسم مستأجر صحيح.")
+                            st.error("خطأ: يرجى كتابة اسم مستأجر صحيح ومعتمد.")
                         else:
                             idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].index[0]
                             st.session_state.shops_db.at[idx, "الحالة"] = "مؤجر"
@@ -79,21 +214,21 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                             st.session_state.shops_db.at[idx, "الإيجار السنوي"] = rent
                             st.session_state.shops_db.at[idx, "بداية العقد"] = start_date.strftime("%Y-%m-%d")
                             st.session_state.shops_db.at[idx, "نهاية العقد"] = end_date.strftime("%Y-%m-%d")
-                            st.success(f"ممتاز! تم حفظ العقد بنجاح للمحل ({selected_shop}) وتم نقله لقائمة المؤجرة.")
-                            st.rerun() # تحديث فوري للقائمة لمنع تكرار الإضافة
+                            st.success(f"ممتاز! تم إدخال وحفظ العقد بنجاح للمحل ({selected_shop}) وتم نقله آلياً لقسم المحلات المؤجرة.")
+                            st.rerun()
             else:
-                st.success("🎉 جميع المحلات الـ 166 مؤجرة بالكامل حالياً ولا يوجد أي شاغر.")
+                st.success("🎉 إنجاز مذهل! جميع المحلات الـ 166 ممتلئة ومؤجرة بالكامل حالياً.")
                 
-        # --- الحالة الثانية: تعديل عقد قائم (يجلب بيانات المستأجر تلقائياً لتعديلها - طلب المراجعة) ---
+        # --- الحالة الثانية: تعديل عقد قائم ---
         else:
             rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
             
             if rented_shops:
                 selected_shop = st.selectbox("اختر رقم المحل المؤجر لغرض تعديل بياناته الحالية:", rented_shops)
-                # جلب البيانات الحالية تلقائياً للمحل المختار ليقوم المستخدم بتعديلها
                 current_data = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].iloc[0]
                 
                 with st.form("edit_contract_form"):
+                    st.warning(f"⚠️ وضع التعديل النشط للمحل: {selected_shop}")
                     col1, col2 = st.columns(2)
                     with col1:
                         edit_status = st.selectbox("تحديث حالة المحل الحالية:", ["مؤجر", "شاغر", "تحت الصيانة"])
@@ -110,7 +245,6 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                         edit_start = st.date_input("تغيير بداية العقد:", value=d1)
                         edit_end = st.date_input("تغيير نهاية العقد:", value=d2)
                     
-                    # طلب المراجعة: زر تحديث منفصل
                     if st.form_submit_button("🔄 تحديث وحفظ بيانات العقد المعدلة"):
                         idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].index[0]
                         st.session_state.shops_db.at[idx, "الحالة"] = edit_status
@@ -121,35 +255,39 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                         st.success(f"تم اعتماد وتحديث تعديلات العقد للمحل ({selected_shop}) بنجاح تام.")
                         st.rerun()
             else:
-                st.info("لا توجد محلات مؤجرة لتعديلها.")
+                st.info("لا يوجد أي محلات مؤجرة حالياً لتعديلها في النظام.")
         
-        # --- النظرة العامة على العقود والتصدير المطور عربي XLSX (طلب المراجعة) ---
+        # --- النظرة العامة على العقود والتصدير المطور ---
         st.markdown("<hr>", unsafe_allow_html=True)
-        st.subheader("📋 النظرة العامة: المحلات المؤجرة حالياً")
+        st.markdown("<h4 style='color:#2C3E50;'>📋 النظرة العامة والتقارير: العقود المؤجرة الحالية</h4>", unsafe_allow_html=True)
         rented_display_df = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"][["رقم المحل", "المستأجر", "الإيجار السنوي", "بداية العقد", "نهاية العقد", "المحصل"]]
         
         if not rented_display_df.empty:
             st.dataframe(rented_display_df, use_container_width=True)
             
-            # طلب المراجعة: تصدير ملف إكسل حقيقي عربي بأعمدة سليمة تفهمها كل الحواسب تفصيلياً بذات الهيكلية
-            excel_bytes = convert_to_real_excel(rented_display_df)
-            st.download_button(label="📥 تحميل الجدول كملف Excel (مباشر ومنظم بأعمدة تفصيلياً تفصيلياً تفصيلياً)", data=excel_bytes, file_name='📊_المحلات_المؤجرة.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            # أزرار تصدير منسقة واحترافية وبدون أي مشاكل ترميز لغوية
+            ec1, ec2 = st.columns(2)
+            with ec1:
+                excel_bytes = convert_to_real_excel(rented_display_df)
+                st.download_button(label="📥 تحميل الجدول كملف Excel (مباشر ومنظم بأعمدة)", data=excel_bytes, file_name='📊_المحلات_المؤجرة.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            with ec2:
+                pdf_html_data = convert_df_to_pdf_html(rented_display_df, "تقرير النظرة العامة للمحلات المؤجرة")
+                st.download_button(label="📄 تصدير وتجهيز التقرير للطباعة كـ PDF", data=pdf_html_data, file_name='📑_تقرير_المحلات_المؤجرة.html', mime='text/html')
         else:
-            st.info("لا توجد محلات مؤجرة لعرضها.")
+            st.info("النظام جاهز بانتظار إدخال عقود لعرضها في جدول النظرة العامة.")
 
-    # 2. التحصيل وسندات القبض (كما هي في النسخة السابقة)
+    # 2. التحصيل وسندات القبض الفخمة
     with tab2:
-        st.subheader("تسجيل التدفقات المالية والمبالغ المحصلة")
+        st.markdown("<h3 style='color:#2C3E50;'>💰 تسجيل عمليات التحصيل والتدفقات المالية</h3>", unsafe_allow_html=True)
         rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
         if rented_shops:
             with st.form("receipt_form"):
-                r_shop = st.selectbox("اختر رقم المحل المُراد تحصيل مبلغه:", rented_shops)
+                r_shop = st.selectbox("اختر رقم المحل المُراد إيداع مبلغه وتحصيله:", rented_shops)
                 tenant_name = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == r_shop]["المستأجر"].values[0]
-                amount = st.number_input("المبلغ المحصل حالياً (ريال):", min_value=1)
-                pay_method = st.selectbox("طريقة استلام المبلغ:", ["تحويل بنكي", "كاش", "شيك"])
+                amount = st.number_input("المبلغ المالي المستلم حالياً (ريال):", min_value=1)
+                pay_method = st.selectbox("طريقة دفع واستلام المبلغ:", ["تحويل بنكي مباشر", "نقداً (كاش)", "شيك مصرفي معتمد"])
                 
-                if st.form_submit_button("اعتماد الحركة وإصدار سند قبض"):
-                    # توليد الرقم التسلسلي للسند المالي مرتبطاً بالسنة الميلادية تفصيلياً تفصيلياً بذات الهيكلية تفصيلياً تفصيلياً بذات الهيكلية تفصيلياً تماماً تفصيلياً
+                if st.form_submit_button("اعتماد الحركة وإصدار سند القبض"):
                     current_year = datetime.now().year
                     receipt_number = f"{current_year}-{len(st.session_state.transactions_db) + 1:04d}"
                     
@@ -166,111 +304,155 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                     }])
                     st.session_state.transactions_db = pd.concat([st.session_state.transactions_db, new_tx], ignore_index=True)
                     
-                    st.success("تم تسجيل الدفعة بنجاح في السجل المالي للنظام تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً!")
-                    # تصميم السند تفصيلياً تفصيلياً تماماً
+                    st.success("تم إدراج الحركة بنجاح في السجل المالي للنظام!")
+                    # تصميم فخم وراقي جداً للسند المالي يظهر مباشرة للمستخدم للاحتفاظ به أو تصويره الشاشة
                     st.markdown(f"""
-                    <div style='border: 2px dashed #4CAF50; padding: 20px; border-radius: 10px; margin-top: 10px; background-color: #f9f9f9; color: #333;'>
-                        <h2 style='text-align: center; color: #2E86C1; margin-bottom: 0;'>🧾 سند قبض مالي رسمي تفصيلياً</h2>
-                        <h4 style='text-align: center; color: #555; margin-top: 5px;'>رقم السند: <b style="color:#2E86C1;">{receipt_number}</b></h4>
-                        <hr style='border: 1px solid #ddd;'>
-                        <p><strong>التاريخ:</strong> {datetime.now().strftime('%Y-%m-%d')} م</p>
-                        <p><strong>استلمنا من السيد/ة:</strong> <b style="background:#f1f2f6; padding:3px; border-radius:4px;">{tenant_name}</b> ( لـ {r_shop} )</p>
-                        <p><strong>مبلغ وقدره الإجمالي:</strong> <b style="font-size:18px; color:#2E86C1;">{amount:,.2f}</b> ريال سعودي تماماً تفصيلياً تفصيلياً تماماً</p>
-                        <p><strong>وذلك لقاء الدفع عن طريق:</strong> <b>{pay_method}</b></p>
+                    <div class="premium-receipt">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div style="text-align: right;">
+                                <h3 style="margin: 0; color: #2C3E50; font-size:22px;">🧾 سند قبض مالي رسمي</h3>
+                                <p style="margin: 2px 0 0 0; color: #7F8C8D; font-size:13px;">رقم السند الموحد: <b style="color:#2E86C1;">{receipt_number}</b></p>
+                            </div>
+                            <div style="text-align: left; color:#7F8C8D; font-size:13px;">
+                                <p style="margin: 0;"><b>التاريخ:</b> {datetime.now().strftime('%Y-%m-%d')} م</p>
+                                <p style="margin: 2px 0 0 0;"><b>الوقت:</b> {datetime.now().strftime('%I:%M %p')}</p>
+                            </div>
+                        </div>
+                        <hr style="border:0; border-top: 1px solid #e0e0e0; margin-bottom: 20px;">
+                        <div style="font-size: 15px; color: #34495E; line-height: 1.8;">
+                            <p>استلمنا من السيد / السيدة: <span style="color:#2C3E50; font-weight:bold; background:#f1f2f6; padding:3px 8px; border-radius:4px;">{tenant_name}</span></p>
+                            <p>المستأجر للموقع العقاري: <span style="font-weight:bold; color:#2E86C1;">{r_shop}</span></p>
+                            <p>مبلغاً وقدره الإجمالي: <span style="font-size:18px; color:#27AE60; font-weight:bold; background:#E8F8F5; padding:4px 10px; border-radius:6px;">{amount:,.2f} ريال سعودي</span></p>
+                            <p>وذلك لقاء الإيجار والدفع المتفق عليه بواسطة: <b>{pay_method}</b></p>
+                        </div>
                         <br>
-                        <p style='text-align: left; font-weight:bold;'>توقيع المسؤول المالي تفصيلياً تفصيلياً تماماً تفصيلياً تفصيلياً تماماً تفصيلياً تماماً تماماً</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; font-size:13px; color:#7F8C8D;">
+                            <p>توقيع الإدارة المالية والتحصيل: ...........................</p>
+                            <p style="font-style: italic;">نظام الإدارة الرقمي الذكي للمجمع</p>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
         else:
-            st.warning("لا توجد محلات مؤجرة لإصدار سندات حالياً.")
+            st.warning("يتطلب النظام وجود محلات مؤجرة نشطة أولاً لإصدار السندات لها.")
 
-    # 3. ديون المغادرين (المجدولة مع تصدير عربي سليمة XLSX تفصيلياً بذات الهيكلية تفصيلياً تماماً - طلب المراجعة تفصيلياً تماماً تفصيلياً)
+    # 3. ديون المغادرين (المجدولة والأرشفة مع تصدير مطور حقيقي)
     with tab3:
-        st.subheader("أرشيف ديون المستأجرين تفصيلياً تفصيلياً المغادرين (جدولة ديونهم بذمتهم تفصيلياً تفصيلياً تماماً تماماً تفصيلياً تماماً) تماماً تفصيلياً تماماً تفصيلياً تفصيلياً)تماماًتماماً تماماًتماماً")
+        st.markdown("<h3 style='color:#2C3E50;'>📂 أرشيف وجدولة ديون المستأجرين المغادرين</h3>", unsafe_allow_html=True)
         with st.form("historical_debt"):
             col1, col2 = st.columns(2)
             with col1:
-                hist_year = st.text_input("السنة المالية تفصيلياً تفصيلياً (مثال: 2023 تفصيلياً):")
-                hist_tenant = st.text_input("اسم المستأجر السابق بذمتهم المغادر تفصيلياً تفصيلياً بذمتهم:")
+                hist_year = st.text_input("السنة المالية المعلقة (مثال: 2023):")
+                hist_tenant = st.text_input("اسم المستأجر السابق المغادر:")
             with col2:
-                hist_details = st.text_area("أسباب المديونية تماماً تفصيلياً وتفاصيل العقد تفصيلياً تفصيلياً:")
-                hist_amount = st.number_input("إجمالي المديونية المتبقية عليه المُراد جدولة (ريال) تفصيلياً تفصيلياً تفصيلياً تفصيلياً تماماًتماماً:", min_value=0)
+                hist_details = st.text_area("أسباب المديونية وتفاصيل العقد السابق:")
+                hist_amount = st.number_input("إجمالي المديونية المتبقية عليه بذمته (ريال):", min_value=0)
                 
-            if st.form_submit_button("🎯 اعتماد وجدولة المديونية التاريخية بالأرشيف تفصيلياً تماماً"):
+            if st.form_submit_button("🎯 اعتماد وجدولة المديونية التاريخية بالأرشيف"):
                 if hist_year and hist_tenant:
                     new_debt = pd.DataFrame([{
-                        "السنة المالية تفصيلياً": str(hist_year), 
-                        "المستأجر السابق تماماً": str(hist_tenant), 
-                        "تفاصيل العقد تماماً": str(hist_details), 
-                        "المبلغ المتبقي تفصيلياً تفصيلياً": float(hist_amount)
+                        "السنة المالية": str(hist_year), 
+                        "المستأجر السابق": str(hist_tenant), 
+                        "تفاصيل العقد": str(hist_details), 
+                        "المبلغ المتبقي": float(hist_amount)
                     }])
                     st.session_state.historical_debts_db = pd.concat([st.session_state.historical_debts_db, new_debt], ignore_index=True)
-                    st.success("تم جدولة وجدولة وجدولة المديونية بنجاح في أرشيف الديون الشامل تفصيلياً تماماً تماماً تفصيلياً تماماً!")
+                    st.success("تم ترحيل وجدولة المديونية بنجاح في أرشيف الديون الشامل.")
         
+        st.markdown("<br><h5>📊 جدول أرشيف الديون التاريخية المجدولة</h5>", unsafe_allow_html=True)
         st.dataframe(st.session_state.historical_debts_db, use_container_width=True)
         
         if not st.session_state.historical_debts_db.empty:
-            # طلب المراجعة تفصيلياً: تصدير إكسل حقيقي عربي بأعمدة سليمة تفهمها كل الحواسب تفصيلياً تماماً
-            debt_excel_bytes = convert_to_real_excel(st.session_state.historical_debts_db)
-            st.download_button(label="📥 تحميل الأرشيف كملف Excel (مباشر تفصيلياً ومنظم بأعمدة تفصيلياً تماماً تماماً تفصيلياً تفصيلياً تماماًتماماً تفصيلياً)", data=debt_excel_bytes, file_name='📊_أرشيف_الديون.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                debt_excel_bytes = convert_to_real_excel(st.session_state.historical_debts_db)
+                st.download_button(label="📥 تحميل أرشيف الديون كملف Excel (أعمدة سليمة)", data=debt_excel_bytes, file_name='📊_أرشيف_الديون.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            with dc2:
+                debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة للمستأجرين المغادرين")
+                st.download_button(label="📄 تصدير أرشيف الديون كتقرير للطباعة (PDF)", data=debt_pdf, file_name='📑_تقرير_أرشيف_الديون.html', mime='text/html')
 
-    # 4. إدارة المصروفات المطابقة تماماً (طلب المراجعة تفصيلياً تفصيلياً)
+    # 4. إدارة المصروفات المطابقة تماماً
     with tab4:
-        st.subheader("إدارة وتسجيل المصروفات التشغيلية تماماً (قفل وتطابق الأعمده تفصيلياً تماماً - طلب المراجعة)")
+        st.markdown("<h3 style='color:#2C3E50;'>🛠️ إدارة وتسجيل المصروفات التشغيلية والصيانة</h3>", unsafe_allow_html=True)
         with st.form("expenses_form"):
             col1, col2 = st.columns(2)
             with col1:
-                exp_date = st.date_input("تاريخ الصرف والاتفاق تفصيلياً تماماً:")
-                exp_cat = st.text_input("بند ومجال الصرف تماماً تفصيلياً تفصيلياً تفصيلياً تماماًتماماً تماماًتماماً:")
+                exp_date = st.date_input("تاريخ الصرف والاتفاق:")
+                exp_cat = st.text_input("بند ومجال الصرف (مثال: صيانة بوابات، فواتير إنارة):")
             with col2:
-                exp_amount = st.number_input("إجمالي المبلغ المالي المصروف تماماًتماماًتماماً تماماًتماماً:", min_value=1)
-                exp_notes = st.text_input("أي ملاحظات إدارية ملحقة بذمتهم تفصيلياً تفصيلياً تفصيلياً:")
+                exp_amount = st.number_input("إجمالي المبلغ المالي المصروف:", min_value=1)
+                exp_notes = st.text_input("ملاحظات إدارية ملحقة:")
             
-            if st.form_submit_button("🚨 تسجيل واعتماد المصروف بالدفاتر المالية تماماً تماماً تفصيلياً تفصيلياً تفصيلياً"):
-                # فرض صياغة محددة جداً وصارمة لضمان قفل وتطابق الأعمدة بنسبة 100% بذات الهيكلية تفصيلياً تفصيلياً تماماًتفصيلياً تفصيلياً تماماً تفصيلياً تماماًتماماًتفصيلياً تماماً تفصيلياًتماماً
+            if st.form_submit_button("🚨 تسجيل واعتماد المصروف بالدفاتر"):
                 new_exp = pd.DataFrame([{
-                    "التاريخ تفصيلياً تماماًتماماً": exp_date.strftime("%Y-%m-%d"), 
-                    "بند الصرف تماماً تفصيلياً تماماً": str(exp_cat), 
-                    "المبلغ تفصيلياً تماماًتماماً تفصيلياًتماماً تماماًتماماً": float(exp_amount), 
-                    "ملاحظات إدارية تفصيلياً": str(exp_notes)
+                    "التاريخ": exp_date.strftime("%Y-%m-%d"), 
+                    "بند الصرف": str(exp_cat), 
+                    "المبلغ": float(exp_amount), 
+                    "ملاحظات": str(exp_notes)
                 }])
                 st.session_state.expenses_db = pd.concat([st.session_state.expenses_db, new_exp], ignore_index=True)
-                st.success("تم تسجيل المصروف المصروف بنجاح بنجاح بنجاح تفصيلياً تفصيلياً تفصيلياً تماماًتفصيلياً تفصيلياًتماماًتفصيلياً تفصيلياً تفصيلياً تفصيلياً تماماً!")
+                st.success("تم قفل وإدراج قيد بند المصروف بالجدول بامتثال كامل وتطابق تام في الهيكلية والأعمدة!")
                 
+        st.markdown("<br><h5>📋 سجل بنود المصروفات التشغيلية المطابق</h5>", unsafe_allow_html=True)
         st.dataframe(st.session_state.expenses_db, use_container_width=True)
 
-# ==================== لوحة المؤشرات (Dashboard) الإحصائية تماماًتماماً تفصيلياً بذات الهيكلية تفصيلياً تفصيلياً كما كما ====================
+# ==================== لوحة المؤشرات التنفيذية (Executive Dashboard) ====================
 elif menu == "لوحة المؤشرات والتحليلات":
-    st.header("📊 لوحة المؤشرات المالية والتحليلات الإستراتيجية للمجمع الـ 166 تفصيلياً تفصيلياً تفصيلياً بذات الهيكلية تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً تماماً كما كما")
+    st.markdown("<h2 style='color:#2C3E50; margin-bottom:5px;'>📊 لوحة المؤشرات المالية والتحليلات الإستراتيجية</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#7F8C8D;'>ملخص تنفيذي فوري لأداء الـ 166 محل عقارياً ومتابعة الأرباح والديون</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
     df_shops = st.session_state.shops_db
     total_collected = df_shops["المحصل"].sum()
     total_historical_debt = st.session_state.historical_debts_db["المبلغ المتبقي"].sum() if not st.session_state.historical_debts_db.empty else 0
     total_expenses = st.session_state.expenses_db["المبلغ"].sum() if not st.session_state.expenses_db.empty else 0
+    net_income = total_collected - total_expenses
     
+    # بناء وتصميم بطاقات المؤشرات الاحترافية الفخمة بدلاً من المؤشرات البدائية الافتراضية
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("إجمالي التحصيلات (العقود الحالية للمجمع الـ 166 تفصيلياً)", f"{total_collected:,.2f} ريال تماماً تماماً تماماً تماماً تماماً تفصيلياً")
+        st.markdown(f"""
+        <div class="metric-card" style="border-right-color: #27AE60;">
+            <div class="metric-title">إجمالي التدفقات والتحصيلات</div>
+            <div class="metric-value">{total_collected:,.2f} ريال</div>
+        </div>
+        """, unsafe_allow_html=True)
     with col2:
-        st.metric("إجمالي المصروفات المصروف المصروف", f"{total_expenses:,.2f} ريال تماماً تماماً تماماً تماماً تماماً تفصيلياً")
+        st.markdown(f"""
+        <div class="metric-card" style="border-right-color: #E67E22;">
+            <div class="metric-title">إجمالي المصروفات التشغيلية</div>
+            <div class="metric-value">{total_expenses:,.2f} ريال</div>
+        </div>
+        """, unsafe_allow_html=True)
     with col3:
-        st.metric("صافي الأرباح الربح الربح", f"{(total_collected - total_expenses):,.2f} ريال تماماً تفصيلياً تماماً تفصيلياً تماماًتفصيلياً")
+        color = "#2E86C1" if net_income >= 0 else "#C0392B"
+        st.markdown(f"""
+        <div class="metric-card" style="border-right-color: {color};">
+            <div class="metric-title">صافي الأرباح والدخل الحالي</div>
+            <div class="metric-value">{net_income:,.2f} ريال</div>
+        </div>
+        """, unsafe_allow_html=True)
     with col4:
-        st.metric("إجمالي المديونيات بذمة المغادرين تفصيلياً بذمة بذمة تفصيلياً بذمة", f"{total_historical_debt:,.2f} ريال تماماً تفصيلياً تماماً تماماً تفصيلياً تماماًتفصيلياً")
+        st.markdown(f"""
+        <div class="metric-card" style="border-right-color: #8E44AD;">
+            <div class="metric-title">ديون معلقة (المغادرين)</div>
+            <div class="metric-value">{total_historical_debt:,.2f} ريال</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-    st.markdown("---")
-    # عرض الرسوم البيانية التفاعلية تماماً بذات بذات الهيكلية بذات بذات بذات بذات الهيكلية تفصيلياً تفصيلياً تفصيلياً تفصيلياً تفصيلياً كما كما تفصيلياً
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
+    
+    # عرض الرسوم البيانية التفاعلية الحديثة
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📊 حالة الـ 166 محل (الإشغال) للمجمع الـ 166 تفصيلياً تفصيلياً تفصيلياً بذات الهيكلية تفصيلياً")
+        st.markdown("<h4 style='text-align: center; color: #34495E;'>📊 الهيكل العقاري والإشغال للـ 166 محل</h4>", unsafe_allow_html=True)
         status_counts = df_shops["الحالة"].value_counts().reset_index()
-        status_counts.columns = ["الحالة تفصيلياً", "العدد تفصيلياً"]
-        fig_pie = px.pie(status_counts, values="العدد تفصيلياً", names="الحالة تفصيلياً", color_discrete_sequence=["#2ecc71", "#e74c3c", "#f1c40f"], hole=0.4)
-        fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+        status_counts.columns = ["الحالة", "العدد"]
+        fig_pie = px.pie(status_counts, values="العدد", names="الحالة", color_discrete_sequence=["#2ecc71", "#e74c3c", "#f1c40f"], hole=0.45)
+        fig_pie.update_layout(font_family="Tajawal", margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_pie, use_container_width=True)
     with c2:
-        st.subheader("⚖️ الميزان المالي للمجمع المجمع الـ 166 تفصيلياً (الإيراد مقابل الصرف) للمجمع تفصيلياً")
-        fin_df = pd.DataFrame({"البند المالي تفصيلياً تماماًتماماً": ["الإيرادات تفصيلياً", "المصروفات تفصيلياً تفصيلياً"], "المبلغ المالي (ريال) تفصيلياً تفصيلياً تفصيلياً": [total_collected, total_expenses]})
-        fig_bar = px.bar(fin_df, x="البند المالي تفصيلياً تماماًتماماً", y="المبلغ المالي (ريال) تفصيلياً تفصيلياً تفصيلياً", color="البند المالي تفصيلياً تماماًتماماً", color_discrete_sequence=["#3498db", "#e67e22"])
-        fig_bar.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20))
+        st.markdown("<h4 style='text-align: center; color: #34495E;'>⚖️ الميزان المالي الافتراضي (الإيراد مقابل الصرف)</h4>", unsafe_allow_html=True)
+        fin_df = pd.DataFrame({"البند المالي": ["الإيرادات المحصلة", "المصروفات العامة"], "القيمة المالية (ريال)": [total_collected, total_expenses]})
+        fig_bar = px.bar(fin_df, x="البند المالي", y="القيمة المالية (ريال)", color="البند المالي", color_discrete_sequence=["#3498db", "#e67e22"])
+        fig_bar.update_layout(font_family="Tajawal", showlegend=False, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_bar, use_container_width=True)
