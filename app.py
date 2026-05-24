@@ -3,9 +3,59 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-st.set_page_config(page_title="نظام إدارة عقارات المحلات", layout="wide")
+st.set_page_config(page_title="نظام إدارة عقارات المحلات المطور", layout="wide")
 
-# ==================== تهيئة قواعد البيانات ====================
+# ==================== دالة معالجة الإكسل لفتحها بأعمدة منفصلة ====================
+def convert_df_to_excel_csv(df):
+    # إضافة ميزة sep=, تجبر الإكسل على فصل الأعمدة فوراً دون دمجها
+    csv_string = "sep=,\n" + df.to_csv(index=False)
+    return csv_string.encode('utf-8-sig')
+
+# ==================== دالة توليد تقرير ذكي للطباعة كـ PDF ====================
+def convert_df_to_pdf_html(df, title="تقرير النظام"):
+    html = f"""
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; padding: 20px; background-color: #f5f5f5; }}
+            .report-card {{ background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }}
+            th, td {{ border: 1px solid #ddd; padding: 12px; text-align: center; }}
+            th {{ background-color: #2E86C1; color: white; font-size: 14px; }}
+            td {{ font-size: 13px; color: #333; }}
+            tr:nth-child(even) {{ background-color: #f9f9f9; }}
+            h2 {{ color: #2E86C1; text-align: center; margin-bottom: 5px; }}
+            .date {{ text-align: left; font-size: 12px; color: #777; }}
+            @media print {{
+                .no-print {{ display: none !important; }}
+                body {{ background-color: white; padding: 0; }}
+                .report-card {{ box-shadow: none; padding: 0; max-width: 100%; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="report-card">
+            <h2>🏢 {title}</h2>
+            <p class="date">تاريخ إصدار التقرير: {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}</p>
+            <hr style='border: 1px solid #eee;'>
+            <table>
+                <thead>
+                    <tr>{"".join(f"<th>{col}</th>" for col in df.columns)}</tr>
+                </thead>
+                <tbody>
+                    {"".join(f"<tr>{''.join(f'<td>{str(val)}</td>' for val in row)}</tr>" for row in df.values)}
+                </tbody>
+            </table>
+            <br><br>
+            <button class="no-print" onclick="window.print()" style="padding: 14px; background-color: #2E86C1; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold;">📸 اضغط هنا لحفظ التقرير كـ PDF أو طباعته</button>
+        </div>
+    </body>
+    </html>
+    """
+    return html.encode('utf-8')
+
+# ==================== تهيئة قواعد البيانات المؤقتة ====================
 if 'shops_db' not in st.session_state:
     data = []
     for i in range(1, 167):
@@ -22,7 +72,6 @@ if 'historical_debts_db' not in st.session_state:
     st.session_state.historical_debts_db = pd.DataFrame(columns=["السنة المالية", "المستأجر السابق", "تفاصيل العقد", "المبلغ المتبقي"])
 
 if 'expenses_db' not in st.session_state:
-    # هيكلة صارمة للأعمدة لتجنب مشاكل التطابق
     st.session_state.expenses_db = pd.DataFrame(columns=["التاريخ", "بند الصرف", "المبلغ", "ملاحظات"])
 
 st.title("🏢 نظام إدارة وتحصيل عقارات المحلات التجارية")
@@ -32,38 +81,107 @@ st.markdown("---")
 menu = st.sidebar.radio("قائمة النظام الأساسية", ["عمليات التحصيل وإدخال البيانات", "لوحة المؤشرات والتحليلات"])
 
 if menu == "عمليات التحصيل وإدخال البيانات":
-    tab1, tab2, tab3, tab4 = st.tabs(["📝 تحديث المحلات والعقود", "💰 التحصيل وسندات القبض", "📂 أرشيف ديون المغادرين", "🛠️ إدارة المصروفات"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📝 إدارة العقود والمحلات", "💰 التحصيل وسندات القبض", "📂 أرشيف ديون المغادرين", "🛠️ إدارة المصروفات"])
     
-    # 1. تحديث المحلات والعقود
+    # 1. إدارة العقود والمحلات (إدخال وتعديل منفصلين)
     with tab1:
-        st.subheader("تحديث بيانات العقود (نظام إيجار)")
-        with st.form("shop_form"):
-            shop_id = st.selectbox("اختر رقم المحل:", st.session_state.shops_db["رقم المحل"])
-            col1, col2 = st.columns(2)
-            with col1:
-                status = st.selectbox("الحالة:", ["مؤجر", "شاغر", "تحت الصيانة"])
-                tenant = st.text_input("اسم المستأجر:")
-                rent = st.number_input("الإيجار السنوي:", min_value=0, value=15000)
-            with col2:
-                start_date = st.date_input("تاريخ بداية العقد:")
-                end_date = st.date_input("تاريخ نهاية العقد:")
-            
-            if st.form_submit_button("حفظ وتحديث البيانات"):
-                idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == shop_id].index[0]
-                st.session_state.shops_db.at[idx, "الحالة"] = status
-                st.session_state.shops_db.at[idx, "المستأجر"] = tenant if status == "مؤجر" else "-"
-                st.session_state.shops_db.at[idx, "الإيجار السنوي"] = rent
-                st.session_state.shops_db.at[idx, "بداية العقد"] = start_date.strftime("%Y-%m-%d")
-                st.session_state.shops_db.at[idx, "نهاية العقد"] = end_date.strftime("%Y-%m-%d")
-                st.success("تم تحديث بيانات العقد بنجاح!")
+        st.subheader("إدارة بيانات عقود الـ 166 محل")
         
-        st.markdown("---")
-        st.subheader("📋 نظرة عامة: المحلات المؤجرة حالياً")
-        rented_df = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]
-        if not rented_df.empty:
-            st.dataframe(rented_df[["رقم المحل", "المستأجر", "الإيجار السنوي", "بداية العقد", "نهاية العقد", "المحصل"]], use_container_width=True)
+        # اختيار نوع الإجراء المطلوب لفصل العمليات والأزرار
+        action_type = st.radio("اختر الإجراء المطلوب المُراد تنفيذه:", ["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث)"], horizontal=True)
+        
+        # --- الحالة الأولى: تسجيل عقد جديد ---
+        if action_type == "✍️ تسجيل عقد لمحل جديد (إدخال جديد)":
+            # جلب المحلات غير المؤجرة فقط (شاغر أو تحت الصيانة) ليتم إزالتها تلقائياً بمجرد تأجيرها
+            available_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] != "مؤجر"]["رقم المحل"].tolist()
+            
+            if available_shops:
+                with st.form("new_contract_form"):
+                    st.info("ملاحظة: هذه القائمة تعرض المحلات الشاغرة فقط. بمجرد الحفظ ستختفي من هنا.")
+                    selected_shop = st.selectbox("اختر رقم المحل المُراد تأجيره:", available_shops)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        tenant = st.text_input("اسم المستأجر الجديد:")
+                        rent = st.number_input("الإيجار السنوي المتفق عليه:", min_value=0, value=15000)
+                    with col2:
+                        start_date = st.date_input("تاريخ بداية العقد جديد:")
+                        end_date = st.date_input("تاريخ نهاية العقد جديد:")
+                    
+                    if st.form_submit_button("💾 حفظ العقد الجديد"):
+                        if tenant.strip() == "" or tenant == "-":
+                            st.error("الرجاء إدخال اسم مستأجر صحيح.")
+                        else:
+                            idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].index[0]
+                            st.session_state.shops_db.at[idx, "الحالة"] = "مؤجر"
+                            st.session_state.shops_db.at[idx, "المستأجر"] = tenant
+                            st.session_state.shops_db.at[idx, "الإيجار السنوي"] = rent
+                            st.session_state.shops_db.at[idx, "بداية العقد"] = start_date.strftime("%Y-%m-%d")
+                            st.session_state.shops_db.at[idx, "نهاية العقد"] = end_date.strftime("%Y-%m-%d")
+                            st.success(f"تم حفظ العقد بنجاح للمحل ({selected_shop}) وتم نقله لقائمة المؤجرة!")
+                            st.rerun()
+            else:
+                st.success("🎉 جميع الـ 166 محل مؤجرة بالكامل حالياً!")
+                
+        # --- الحالة الثانية: تعديل عقد قائم ---
         else:
-            st.info("لا توجد محلات مؤجرة حالياً.")
+            rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
+            
+            if rented_shops:
+                selected_shop = st.selectbox("اختر رقم المحل المؤجر المُراد تعديل بياناته:", rented_shops)
+                
+                # جلب البيانات الحالية تلقائياً للمحل المختار ليقوم المستخدم بتعديلها
+                current_data = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].iloc[0]
+                
+                with st.form("edit_contract_form"):
+                    st.warning(f"أنت الآن تقوم بتعديل بيانات العقد للمحل: {selected_shop}")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        edit_status = st.selectbox("تحديث الحالة (مثلاً في حال الإخلاء أو الصيانة):", ["مؤجر", "شاغر", "تحت الصيانة"])
+                        edit_tenant = st.text_input("اسم المستأجر الحالي:", value=current_data["المستأجر"])
+                        edit_rent = st.number_input("الإيجار السنوي الحالي:", min_value=0, value=int(current_data["الإيجار السنوي"]))
+                    with col2:
+                        # تحويل النصوص إلى تواريخ افتراضية لتسهيل التعديل
+                        try:
+                            d1 = datetime.strptime(current_data["بداية العقد"], "%Y-%m-%d")
+                            d2 = datetime.strptime(current_data["نهاية العقد"], "%Y-%m-%d")
+                        except:
+                            d1 = datetime.now()
+                            d2 = datetime.now()
+                            
+                        edit_start = st.date_input("تعديل تاريخ بداية العقد:", value=d1)
+                        edit_end = st.date_input("تعديل تاريخ نهاية العقد:", value=d2)
+                    
+                    if st.form_submit_button("🔄 تحديث بيانات العقد"):
+                        idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == selected_shop].index[0]
+                        st.session_state.shops_db.at[idx, "الحالة"] = edit_status
+                        st.session_state.shops_db.at[idx, "المستأجر"] = edit_tenant if edit_status == "مؤجر" else "-"
+                        st.session_state.shops_db.at[idx, "الإيجار السنوي"] = edit_rent
+                        st.session_state.shops_db.at[idx, "بداية العقد"] = edit_start.strftime("%Y-%m-%d")
+                        st.session_state.shops_db.at[idx, "نهاية العقد"] = edit_end.strftime("%Y-%m-%d")
+                        st.success(f"تم تحديث تعديلات المحل ({selected_shop}) بنجاح تام!")
+                        st.rerun()
+            else:
+                st.info("لا توجد أي محلات مؤجرة حالياً لتعديلها.")
+        
+        # --- النظرة العامة على العقود والتصدير المطور ---
+        st.markdown("---")
+        st.subheader("📋 النظرة العامة: المحلات المؤجرة تفصيلياً")
+        rented_display_df = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"][["رقم المحل", "المستأجر", "الإيجار السنوي", "بداية العقد", "نهاية العقد", "المحصل"]]
+        
+        if not rented_display_df.empty:
+            st.dataframe(rented_display_df, use_container_width=True)
+            
+            # أزرار تصدير النظرة العامة مرتبة ومنفصلة
+            ec1, ec2 = st.columns(2)
+            with ec1:
+                excel_data = convert_df_to_excel_csv(rented_display_df)
+                st.download_button(label="📥 تحميل النظرة العامة (ملف Excel بأعمدة منفصلة)", data=excel_data, file_name='📊_المحلات_المؤجرة.csv', mime='text/csv')
+            with ec2:
+                pdf_html_data = convert_df_to_pdf_html(rented_display_df, "تقرير النظرة العامة للمحلات المؤجرة")
+                st.download_button(label="📄 تصدير النظرة العامة كتقرير (PDF)", data=pdf_html_data, file_name='📑_تقرير_المحلات_المؤجرة.html', mime='text/html')
+        else:
+            st.info("لا توجد محلات مؤجرة لعرضها في النظرة العامة حالياً.")
 
     # 2. التحصيل وسندات القبض
     with tab2:
@@ -77,11 +195,9 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 pay_method = st.selectbox("طريقة الدفع:", ["تحويل بنكي", "كاش", "شيك"])
                 
                 if st.form_submit_button("اعتماد وإصدار سند قبض"):
-                    # توليد الرقم التسلسلي (السنة الحالية - رقم العملية)
                     current_year = datetime.now().year
                     receipt_number = f"{current_year}-{len(st.session_state.transactions_db) + 1:04d}"
                     
-                    # تحديث البيانات
                     idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == r_shop].index[0]
                     st.session_state.shops_db.at[idx, "المحصل"] += amount
                     
@@ -95,37 +211,36 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                     }])
                     st.session_state.transactions_db = pd.concat([st.session_state.transactions_db, new_tx], ignore_index=True)
                     
-                    # عرض السند للطباعة
-                    st.success("تم تسجيل الدفعة بنجاح!")
+                    st.success("تم تسجيل الدفعة بنجاح بنظام السندات المتسلسلة!")
                     st.markdown(f"""
                     <div style='border: 2px dashed #4CAF50; padding: 20px; border-radius: 10px; margin-top: 10px; background-color: #f9f9f9; color: #333;'>
-                        <h2 style='text-align: center; color: #2E86C1; margin-bottom: 0;'>🧾 سند قبض</h2>
-                        <h4 style='text-align: center; color: #555; margin-top: 5px;'>رقم السند: {receipt_number}</h4>
+                        <h2 style='text-align: center; color: #2E86C1; margin-bottom: 0;'>🧾 سند قبض مالي</h2>
+                        <h4 style='text-align: center; color: #555; margin-top: 5px;'>رقم السند الموحد: {receipt_number}</h4>
                         <hr style='border: 1px solid #ddd;'>
-                        <p><strong>التاريخ:</strong> {datetime.now().strftime('%Y-%m-%d')} م</p>
-                        <p><strong>استلمنا من السيد/ة:</strong> {tenant_name} ( {r_shop} )</p>
-                        <p><strong>مبلغ وقدره:</strong> <b>{amount:,.2f}</b> ريال سعودي</p>
-                        <p><strong>طريقة الدفع:</strong> {pay_method}</p>
+                        <p><strong>التاريخ م:</strong> {datetime.now().strftime('%Y-%m-%d')} م</p>
+                        <p><strong>وصلنا من السيد/ة:</strong> {tenant_name} ( المستأجر لـ {r_shop} )</p>
+                        <p><strong>مبلغ وقدره:</strong> <b style='color:#2E86C1; font-size:18px;'>{amount:,.2f} ريال سعودي</b></p>
+                        <p><strong>وذلك كدفعة عن طريق:</strong> {pay_method}</p>
                         <br>
-                        <p style='text-align: left;'>التوقيع: .....................</p>
+                        <p style='text-align: left; font-weight:bold;'>توقيع المسؤول المالي والمحصل: .....................</p>
                     </div>
                     """, unsafe_allow_html=True)
         else:
-            st.warning("لا توجد محلات مؤجرة حالياً لإصدار سندات لها.")
+            st.warning("لا توجد محلات مؤجرة لإصدار سندات حالياً.")
 
-    # 3. ديون المغادرين
+    # 3. ديون المغادرين (المجدولة مع تصدير مطور)
     with tab3:
-        st.subheader("أرشيف ديون المستأجرين المغادرين")
+        st.subheader("جدولة وأرشيف ديون المستأجرين المغادرين")
         with st.form("historical_debt"):
             col1, col2 = st.columns(2)
             with col1:
                 hist_year = st.text_input("السنة المالية (مثال: 2023):")
-                hist_tenant = st.text_input("اسم المستأجر السابق:")
+                hist_tenant = st.text_input("اسم المستأجر السابق المغادر:")
             with col2:
-                hist_details = st.text_area("تفاصيل العقد أو الملاحظات:")
-                hist_amount = st.number_input("المبلغ المتبقي (المديونية):", min_value=0)
+                hist_details = st.text_area("تفاصيل العقد والمديونية المتبقية:")
+                hist_amount = st.number_input("إجمالي المبلغ المتبقي (ريال):", min_value=0)
                 
-            if st.form_submit_button("إضافة للمديونيات السابقة"):
+            if st.form_submit_button("🎯 اعتماد وجدولة المديونية السابقة"):
                 if hist_year and hist_tenant:
                     new_debt = pd.DataFrame([{
                         "السنة المالية": str(hist_year), 
@@ -134,29 +249,35 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                         "المبلغ المتبقي": float(hist_amount)
                     }])
                     st.session_state.historical_debts_db = pd.concat([st.session_state.historical_debts_db, new_debt], ignore_index=True)
-                    st.success("تم أرشفة المديونية بنجاح.")
+                    st.success("تم إدراج المديونية في الأرشيف المجدول بنجاح.")
         
+        st.markdown("---")
+        st.subheader("📊 جدول أرشيف الديون المجدولة")
         st.dataframe(st.session_state.historical_debts_db, use_container_width=True)
         
         if not st.session_state.historical_debts_db.empty:
-            # زر تصدير الإكسل (يدعم اللغة العربية)
-            csv = st.session_state.historical_debts_db.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(label="📥 تحميل أرشيف الديون (Excel)", data=csv, file_name='Historical_Debts.csv', mime='text/csv')
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                debt_excel = convert_df_to_excel_csv(st.session_state.historical_debts_db)
+                st.download_button(label="📥 تحميل أرشيف الديون (ملف Excel بأعمدة منفصلة)", data=debt_excel, file_name='📊_أرشيف_الديون.csv', mime='text/csv')
+            with dc2:
+                debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة للمستأجرين المغادرين")
+                st.download_button(label="📄 تصدير أرشيف الديون كتقرير (PDF)", data=debt_pdf, file_name='📑_تقرير_أرشيف_الديون.html', mime='text/html')
 
-    # 4. المصروفات والصيانة
+    # 4. إدارة المصروفات (مع ضمان هيكلية الأعمدة)
     with tab4:
-        st.subheader("تسجيل المصروفات التشغيلية")
+        st.subheader("إدارة وتسجيل المصروفات التشغيلية")
         with st.form("expenses_form"):
             col1, col2 = st.columns(2)
             with col1:
                 exp_date = st.date_input("تاريخ الصرف:")
-                exp_cat = st.text_input("بند الصرف (مثال: صيانة مصاعد، نظافة):")
+                exp_cat = st.text_input("بند ومجال الصرف (مثل: صيانة شبكة المياه، فواتير الكهرباء):")
             with col2:
-                exp_amount = st.number_input("المبلغ المصروف:", min_value=1)
-                exp_notes = st.text_input("ملاحظات إضافية:")
+                exp_amount = st.number_input("المبلغ المالي المصروف:", min_value=1)
+                exp_notes = st.text_input("أي ملاحظات تود تدوينها:")
             
-            if st.form_submit_button("تسجيل المصروف"):
-                # فرض هيكلة الأعمدة بدقة
+            if st.form_submit_button("🚨 تسجيل واعتماد المصروف"):
+                # صياغة محددة جداً وصارمة لضمان تطابق الأعمدة بنسبة 100% وعدم تداخل الجدول
                 new_exp = pd.DataFrame([{
                     "التاريخ": exp_date.strftime("%Y-%m-%d"), 
                     "بند الصرف": str(exp_cat), 
@@ -164,13 +285,15 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                     "ملاحظات": str(exp_notes)
                 }])
                 st.session_state.expenses_db = pd.concat([st.session_state.expenses_db, new_exp], ignore_index=True)
-                st.success("تم تسجيل المصروف بنجاح.")
+                st.success("تم قفل وإدراج بند المصروف بالجدول بنجاح وتطابق كامل!")
                 
+        st.markdown("---")
+        st.subheader("📋 سجل المصروفات الحالية المطابق")
         st.dataframe(st.session_state.expenses_db, use_container_width=True)
 
-# ==================== لوحة المؤشرات ====================
+# ==================== لوحة المؤشرات الإحصائية ====================
 elif menu == "لوحة المؤشرات والتحليلات":
-    st.header("📊 لوحة المؤشرات والتحليلات الإستراتيجية")
+    st.header("📊 لوحة المؤشرات والتحليلات الإستراتيجية للمجمع")
     
     df_shops = st.session_state.shops_db
     total_collected = df_shops["المحصل"].sum()
@@ -179,24 +302,24 @@ elif menu == "لوحة المؤشرات والتحليلات":
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("إجمالي الإيرادات المحصلة", f"{total_collected:,} ريال")
+        st.metric("إجمالي التحصيلات (العقود الحالية)", f"{total_collected:,} ريال")
     with col2:
-        st.metric("إجمالي المصروفات", f"{total_expenses:,} ريال")
+        st.metric("إجمالي المصروفات التشغيلية", f"{total_expenses:,} ريال")
     with col3:
-        st.metric("صافي الدخل الحالي", f"{(total_collected - total_expenses):,} ريال")
+        st.metric("صافي الدخل الحالي للمشروع", f"{(total_collected - total_expenses):,} ريال")
     with col4:
-        st.metric("إجمالي الديون للمغادرين", f"{total_historical_debt:,} ريال")
+        st.metric("إجمالي المديونيات المعلقة", f"{total_historical_debt:,} ريال")
         
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("حالة المجمع التجاري")
+        st.subheader("📊 توزيع حالة الـ 166 محل عقارياً")
         status_counts = df_shops["الحالة"].value_counts().reset_index()
         status_counts.columns = ["الحالة", "العدد"]
         fig_pie = px.pie(status_counts, values="العدد", names="الحالة", color_discrete_sequence=["#2ecc71", "#e74c3c", "#f1c40f"], hole=0.4)
         st.plotly_chart(fig_pie, use_container_width=True)
     with c2:
-        st.subheader("الإيرادات مقابل المصروفات")
+        st.subheader("⚖️ الإيرادات المحصلة مقابل المصروفات")
         fin_df = pd.DataFrame({"البند": ["الإيرادات", "المصروفات"], "المبلغ": [total_collected, total_expenses]})
         fig_bar = px.bar(fin_df, x="البند", y="المبلغ", color="البند", color_discrete_sequence=["#3498db", "#e67e22"])
         st.plotly_chart(fig_bar, use_container_width=True)
