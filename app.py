@@ -15,14 +15,12 @@ st.markdown("""
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
         }
         
-        /* تحسين شكل القائمة الجانبية */
+        /* إخفاء السايدبار الجانبي لتوحيد التصميم في المنتصف */
         [data-testid="stSidebar"] {
-            background-color: rgba(255, 255, 255, 0.6) !important;
-            backdrop-filter: blur(10px) !important;
-            border-left: 1px solid rgba(255, 255, 255, 0.4) !important;
+            display: none !important;
         }
         
-        /* تصميم البطاقات والحاويات بشكل ناعم ومستدير (نفس الصور المرفقة) */
+        /* تصميم البطاقات والحاويات بشكل ناعم ومستدير */
         div[data-testid="stForm"], .stTabs, [data-testid="stMetricValue"] {
             background: rgba(255, 255, 255, 0.7) !important;
             backdrop-filter: blur(12px) !important;
@@ -205,21 +203,21 @@ if 'expenses_db' not in st.session_state:
 if 'latest_receipt' not in st.session_state:
     st.session_state.latest_receipt = None
 
-# عنوان النظام المحدث
+# عنوان النظام الرئيسي
 st.title("🏢 نظام إدارة وتحصيل أسواق الشبرمي")
 st.markdown("---")
 
-# ==================== القائمة الرئيسية ====================
-menu = st.sidebar.radio("قائمة النظام الأساسية", ["عمليات التحصيل وإدخال البيانات", "لوحة المؤشرات والتحليلات"])
+# ==================== القائمة الرئيسية (تم تحويلها بالكامل إلى Tabs علوية مدمجة بالأيقونات) ====================
+main_menu_tab1, main_menu_tab2 = st.tabs(["📥 عمليات التحصيل وإدخال البيانات", "📊 لوحة المؤشرات والتحليلات"])
 
-if menu == "عمليات التحصيل وإدخال البيانات":
+# القسم الأول: عمليات التحصيل وإدخال البيانات
+with main_menu_tab1:
     tab1, tab2, tab3, tab4 = st.tabs(["📝 إدارة العقود والمحلات", "💰 التحصيل وسندات القبض", "📂 أرشيف ديون المغادرين", "🛠️ إدارة المصروفات"])
     
     # 1. إدارة العقود والمحلات
     with tab1:
         st.subheader("إدارة بيانات عقود الـ 166 محل")
         
-        # التنقل بالأيقونات والكلمة نفسها بشكل تفاعلي عصري
         sub_tab1, sub_tab2 = st.tabs(["✍️ تسجيل عقد لمحل جديد (إدخال جديد)", "🔄 تعديل بيانات عقد قائم (تحديث)"])
         
         with sub_tab1:
@@ -301,7 +299,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
         else:
             st.info("لا توجد محلات مؤجرة لعرضها في النظرة العامة حالياً.")
 
-# ==================== التحصيل وسندات القبض ====================
+    # 2. التحصيل وسندات القبض
     with tab2:
         st.subheader("تسجيل الدفعات وإصدار السندات")
         rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
@@ -366,7 +364,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
         else:
             st.warning("لا توجد محلات مؤجرة لإصدار سندات حالياً.")
 
-# ==================== ديون المغادرين ====================
+    # 3. ديون المغادرين
     with tab3:
         st.subheader("جدولة وأرشيف ديون المستأجرين المغادرين")
         with st.form("historical_debt"):
@@ -401,7 +399,7 @@ if menu == "عمليات التحصيل وإدخال البيانات":
                 debt_pdf = convert_df_to_pdf_html(st.session_state.historical_debts_db, "تقرير أرشيف الديون المجدولة - أسواق الشبرمي")
                 st.download_button(label="📄 تصدير أرشيف الديون كتقرير (PDF)", data=debt_pdf, file_name='📑_تقرير_أرشيف_الديون.html', mime='text/html')
 
-# ==================== إدارة المصروفات ====================
+    # 4. إدارة المصروفات
     with tab4:
         st.subheader("إدارة وتسجيل المصروفات التشغيلية لأسواق الشبرمي")
         with st.form("expenses_form"):
@@ -427,8 +425,8 @@ if menu == "عمليات التحصيل وإدخال البيانات":
         st.subheader("📋 سجل المصروفات الحالية المطابق")
         st.dataframe(st.session_state.expenses_db, use_container_width=True)
 
-# ==================== لوحة المؤشرات الإحصائية ====================
-elif menu == "لوحة المؤشرات والتحليلات":
+# القسم الثاني: لوحة المؤشرات والتحليلات
+with main_menu_tab2:
     st.header("📊 لوحة المؤشرات والتحليلات الإستراتيجية لأسواق الشبرمي")
     df_shops = st.session_state.shops_db
     total_collected = df_shops["المحصل"].sum()
