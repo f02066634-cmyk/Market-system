@@ -142,7 +142,7 @@ def convert_df_to_pdf_html(df, title="تقرير النظام"):
     """
     return html.encode('utf-8')
 
-# ==================== دالة توليد سند قبض منفرد جاهز للطباعة الفورية ====================
+# ==================== دالة توليد سند قبض منفرد جاهز للطباعة الفورية (محدث) ====================
 def convert_receipt_to_pdf_html(receipt_data):
     html = f"""
     <html>
@@ -170,7 +170,7 @@ def convert_receipt_to_pdf_html(receipt_data):
             <p><strong>تاريخ الإغلاق والاعتماد:</strong> {receipt_data['التاريخ']} م</p>
             <p><strong>وصلنا من السيد/ة:</strong> {receipt_data['المستأجر']} ( المستأجر لـ {receipt_data['رقم المحل']} )</p>
             <p><strong>إجمالي مبلغ الدفعة المكتملة:</strong> <b style='color:#2E86C1; font-size:18px;'>{receipt_data['إجمالي المتفق عليه']:,.2f} ريال سعودي</b></p>
-            <p><strong>حالة السند:</strong> مكتمل ومغلق وعقد الدفعة مستوفى</p>
+            <p><strong>طريقة الدفع والاستلام:</strong> {receipt_data['طريقة الدفع']}</p>
             <br>
             <p style='text-align: left; font-weight:bold;'>توقيع المسؤول المالي والمحصل: .....................</p>
             <br><br>
@@ -191,11 +191,11 @@ if 'shops_db' not in st.session_state:
         })
     st.session_state.shops_db = pd.DataFrame(data)
 
-# تحديث هيكل قاعدة بيانات العمليات لدعم السندات المفتوحة والمجزأة
+# تحديث هيكل قاعدة بيانات العمليات لدعم السندات وطريقة الدفع
 if 'transactions_db' not in st.session_state:
     st.session_state.transactions_db = pd.DataFrame(columns=[
         "رقم السند", "تاريخ البدء", "تاريخ التحديث", "رقم المحل", 
-        "المستأجر", "إجمالي المتفق عليه", "إجمالي المدفوع حتى الآن", "المبلغ المتبقي", "الحالة"
+        "المستأجر", "إجمالي المتفق عليه", "إجمالي المدفوع حتى الآن", "المبلغ المتبقي", "طريقة الدفع", "الحالة"
     ])
 
 if 'historical_debts_db' not in st.session_state:
@@ -308,15 +308,20 @@ with main_menu_tab1:
         
         pay_sub_tab1, pay_sub_tab2 = st.tabs(["🆕 إنشاء سند دفعة جديد (مفتوح)", "🔄 تحديث وإغلاق السندات المفتوحة حالياً"])
         
-        # الفرع أ: إنشاء دفعة جديدة
+        # الفرع أ: إنشاء دفعة جديدة (محدث لتحديث البيانات فورياً تلقائياً)
         with pay_sub_tab1:
             rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
             if rented_shops:
-                with st.form("new_receipt_split_form"):
-                    r_shop = st.selectbox("اختر المحل المُراد تسجيل دفعة له:", rented_shops)
-                    tenant_name = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == r_shop]["المستأجر"].values[0]
-                    
-                    st.markdown(f"**المستأجر الحالي:** {tenant_name}")
+                # 🌟 تم وضع اختيار المحل هنا خارج الفورم ليعمل الارتباط والاستعراض التلقائي فوراً
+                r_shop = st.selectbox("اختر المحل المُراد تسجيل دفعة له:", rented_shops, key="new_receipt_shop_select")
+                tenant_name = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == r_shop]["المستأجر"].values[0]
+                
+                # استعراض البيانات مرتبط مباشرة وبشكل فوري باختيارك للمحل
+                st.markdown(f"**👤 المستأجر المرتبط بالمحل المحدد حالياً:** <span style='color:#2E86C1; font-weight:bold; font-size:18px;'>{tenant_name}</span>", unsafe_allow_html=True)
+                
+                # نموذج تعبئة بيانات السند والدفعة (يفرغ البيانات تلقائياً بمجرد الحفظ)
+                with st.form("new_receipt_split_form", clear_on_submit=True):
+                    pay_method_new = st.selectbox("طريقة الدفع والاستلام:", ["نقد", "إيداع بنكي"])
                     col1, col2 = st.columns(2)
                     with col1:
                         target_amount = st.number_input("المبلغ المتفق عليه للدفعة كاملة:", min_value=1, value=1000)
@@ -332,7 +337,7 @@ with main_menu_tab1:
                             remaining = target_amount - paid_now
                             status = "مغلق (مكتمل)" if remaining == 0 else "مفتوح (قيد التحصيل)"
                             
-                            # إضافة الدفعة في الجدول الموحد
+                            # إضافة الدفعة في الجدول الموحد مع طريقة الدفع
                             new_tx = pd.DataFrame([{
                                 "رقم السند": receipt_number,
                                 "تاريخ البدء": datetime.now().strftime("%Y-%m-%d"),
@@ -342,6 +347,7 @@ with main_menu_tab1:
                                 "إجمالي المتفق عليه": float(target_amount),
                                 "إجمالي المدفوع حتى الآن": float(paid_now),
                                 "المبلغ المتبقي": float(remaining),
+                                "طريقة الدفع": pay_method_new,
                                 "الحالة": status
                             }])
                             st.session_state.transactions_db = pd.concat([st.session_state.transactions_db, new_tx], ignore_index=True)
@@ -358,7 +364,7 @@ with main_menu_tab1:
             else:
                 st.warning("لا توجد محلات مؤجرة لإصدار دفعات لها حالياً.")
                 
-        # الفرع ب: إدارة وتحديث السندات المفتوحة
+        # الفرع ب: إدارة وتحديث السندات المفتوحة (محدث ومضاف له طريقة الدفع)
         with pay_sub_tab2:
             tx_df = st.session_state.transactions_db
             open_tx = tx_df[tx_df["الحالة"] == "مفتوح (قيد التحصيل)"]
@@ -367,16 +373,18 @@ with main_menu_tab1:
                 st.info("💡 هذه القائمة تعرض السندات المفتوحة التي لم تكتمل مبالغها بعد. يمكنك تحديثها وإغلاقها فور اكتمال السداد.")
                 selected_open_id = st.selectbox("اختر رقم السند المفتوح لتحديثه:", open_tx["رقم السند"].tolist())
                 
-                # جلب بيانات السند المختار
+                # جلب بيانات السند المختار وعرضها تلقائياً
                 target_tx_row = tx_df[tx_df["رقم السند"] == selected_open_id].iloc[0]
                 st.markdown(f"""
                 * **المستأجر:** {target_tx_row['المستأجر']} | **المحل:** {target_tx_row['رقم المحل']}
                 * **المبلغ المتفق عليه كاملاً:** {target_tx_row['إجمالي المتفق عليه']:,} ريال
                 * **ما تم دفعه سابقاً:** {target_tx_row['إجمالي المدفوع حتى الآن']:,} ريال
                 * 🔴 **المبلغ المتبقي المطلوب للإغلاق:** {target_tx_row['المبلغ المتبقي']:,} ريال
+                * **طريقة الدفع للدفعة السابقة:** {target_tx_row['طريقة الدفع']}
                 """)
                 
-                with st.form("update_split_receipt"):
+                with st.form("update_split_receipt", clear_on_submit=True):
+                    pay_method_update = st.selectbox("طريقة الدفع والاستلام للمبلغ المتبقي الحالي:", ["نقد", "إيداع بنكي"])
                     new_pay = st.number_input("أدخل المبلغ المدفوع الجديد حالياً:", min_value=1, value=int(target_tx_row['المبلغ المتبقي']))
                     
                     if st.form_submit_button("🔄 اعتماد التحديث وإضافة المبلغ"):
@@ -390,8 +398,16 @@ with main_menu_tab1:
                             updated_remaining = target_tx_row['إجمالي المتفق عليه'] - updated_paid
                             updated_status = "مغلق (مكتمل)" if updated_remaining == 0 else "مفتوح (قيد التحصيل)"
                             
+                            # دمج طريقة الدفع بذكاء إذا اختلفت بين الدفعتين الأولى والثانية لتظهر بالسند
+                            old_method = target_tx_row['طريقة الدفع']
+                            if pay_method_update not in old_method:
+                                final_pay_method = f"{old_method} و {pay_method_update}"
+                            else:
+                                final_pay_method = old_method
+                            
                             st.session_state.transactions_db.at[idx, "إجمالي المدفوع حتى الآن"] = updated_paid
                             st.session_state.transactions_db.at[idx, "المبلغ المتبقي"] = updated_remaining
+                            st.session_state.transactions_db.at[idx, "طريقة الدفع"] = final_pay_method
                             st.session_state.transactions_db.at[idx, "الحالة"] = updated_status
                             st.session_state.transactions_db.at[idx, "تاريخ التحديث"] = datetime.now().strftime("%Y-%m-%d")
                             
@@ -400,7 +416,7 @@ with main_menu_tab1:
                             s_idx = st.session_state.shops_db[st.session_state.shops_db["رقم المحل"] == shop_name].index[0]
                             st.session_state.shops_db.at[s_idx, "المحصل"] += new_pay
                             
-                            st.success("تم تحديث الدفعة بنجاح!")
+                            st.success("تم تحديث الدفعة بنجاح وإغلاق السند!")
                             st.rerun()
             else:
                 st.success("🎉 ممتاز! لا توجد أي سندات مفتوحة أو معلقة حالياً، كل الدفعات مكتملة.")
@@ -423,7 +439,8 @@ with main_menu_tab1:
                     "التاريخ": p_data["تاريخ التحديث"],
                     "المستأجر": p_data["المستأجر"],
                     "رقم المحل": p_data["رقم المحل"],
-                    "إجمالي المتفق عليه": p_data["إجمالي المتفق عليه"]
+                    "إجمالي المتفق عليه": p_data["إجمالي المتفق عليه"],
+                    "طريقة الدفع": p_data["طريقة الدفع"]
                 }
                 
                 receipt_html_bytes = convert_receipt_to_pdf_html(receipt_dict)
