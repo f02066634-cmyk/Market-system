@@ -307,7 +307,7 @@ with main_menu_tab1:
         
         pay_sub_tab1, pay_sub_tab2 = st.tabs(["🆕 إنشاء سند دفعة جديد (مفتوح)", "🔄 تحديث وإغلاق السندات المفتوحة حالياً"])
         
-        # الفرع أ: إنشاء دفعة جديدة (محدث كلياً لمنع الازدواجية وإلزام التصفية برقم السند)
+        # الفرع أ: إنشاء دفعة جديدة
         with pay_sub_tab1:
             rented_shops = st.session_state.shops_db[st.session_state.shops_db["الحالة"] == "مؤجر"]["رقم المحل"].tolist()
             if rented_shops:
@@ -316,22 +316,20 @@ with main_menu_tab1:
                 
                 st.markdown(f"**👤 المستأجر المرتبط بالمحل المحدد حالياً:** <span style='color:#2E86C1; font-weight:bold; font-size:18px;'>{tenant_name}</span>", unsafe_allow_html=True)
                 
-                # 🌟 الفحص الذكي: هل توجد مديونية معلقة بسند مفتوح سابق لنفس المحل؟
+                # الفحص الذكي لوجود مديونية معلقة
                 tx_df = st.session_state.transactions_db
                 existing_open = tx_df[(tx_df["رقم المحل"] == r_shop) & (tx_df["الحالة"] == "مفتوح (قيد التحصيل)")]
                 
                 if not existing_open.empty:
-                    # في حال وجود سند مفتوح: يتم حجب الفورم وإصدار تنبيه صارم بالربط المالي
                     open_receipt_data = existing_open.iloc[0]
                     st.error("🛑 خطأ: لا يمكن فتح سند جديد موازي لهذا المحل!")
                     st.warning(f"""
-                    هذا المحل مرتبك حالياً بسند مفتوح سابق لم يكتمل مبلغه بالكامل بعد.
+                    هذا المحل مرتبط حالياً بسند مفتوح سابق لم يكتمل مبلغه بالكامل بعد.
                     * **رقم السند المعلق:** `{open_receipt_data['رقم السند']}`
                     * **المبلغ المتبقي المطلوب تحصيله:** `{open_receipt_data['المبلغ المتبقي']:,} ريال`
                     """)
                     st.info("💡 لضمان ربط التحصيل برقم السند المخصص له؛ يرجى الانتقال فوراً لعلامة التبويب المجاورة **(🔄 تحديث وإغلاق السندات المفتوحة حالياً)** وإضافة الدفعة الجديدة هناك لإغلاق السند بنجاح.")
                 else:
-                    # في حال المحل سليم؛ يظهر نموذج إنشاء السند بشكل طبيعي
                     with st.form("new_receipt_split_form", clear_on_submit=True):
                         pay_method_new = st.selectbox("طريقة الدفع والاستلام:", ["نقد", "إيداع بنكي"])
                         col1, col2 = st.columns(2)
@@ -427,13 +425,25 @@ with main_menu_tab1:
             else:
                 st.success("🎉 ممتاز! لا توجد أي سندات مفتوحة أو معلقة حالياً، كل الدفعات مكتملة.")
 
-        # عرض أرشيف الدفعات والسندات العام والطباعة
+        # ================= عرض أرشيف الدفعات والسندات العام والطباعة =================
         st.markdown("---")
         st.subheader("📋 أرشيف وحالة السندات الشامل")
         if not st.session_state.transactions_db.empty:
             st.dataframe(st.session_state.transactions_db, use_container_width=True)
             
-            st.markdown("### 🖨️ طباعة السندات المكتملة")
+            # --- الإضافة الجديدة: أزرار طباعة وتحميل أرشيف السندات الشامل ---
+            tc1, tc2 = st.columns(2)
+            with tc1:
+                tx_excel = convert_df_to_excel_csv(st.session_state.transactions_db)
+                st.download_button(label="📥 تحميل أرشيف السندات الشامل (ملف Excel)", data=tx_excel, file_name='📊_أرشيف_السندات_الشامل.csv', mime='text/csv')
+            with tc2:
+                tx_pdf = convert_df_to_pdf_html(st.session_state.transactions_db, "تقرير أرشيف وحالة السندات الشامل - أسواق الشبرمي")
+                st.download_button(label="📄 تصدير أرشيف السندات الشامل كتقرير (PDF)", data=tx_pdf, file_name='📑_تقرير_أرشيف_السندات_الشامل.html', mime='text/html')
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # قسم طباعة السندات المغلقة والمكتملة فقط
+            st.markdown("### 🖨️ طباعة السندات المكتملة الفردية")
             closed_tx = st.session_state.transactions_db[st.session_state.transactions_db["الحالة"] == "مغلق (مكتمل)"]
             if not closed_tx.empty:
                 print_id = st.selectbox("اختر السند المكتمل المراد طباعته كـ PDF:", closed_tx["رقم السند"].tolist())
